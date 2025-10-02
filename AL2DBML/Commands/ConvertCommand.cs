@@ -12,12 +12,10 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
     {
         [Description("Input target - AL file, workspace file or folder")]
         [CommandOption("-i|--input <INPUT>")]
-        [Required]
         public string? Input { get; init; }
 
         [Description("Output target directory for the DBML file")]
         [CommandOption("-o|--output <OUTPUT>")]
-        [Required]
         public string? Output { get; init; }
     }
 
@@ -42,7 +40,7 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
             return -1;
         }
 
-        List<string> fileList = Helper.GetALFiles(input);
+        List<string> fileList = Helper.GetALFilesToConvert(input);
 
         AnsiConsole.Progress()
             .Start(ctx =>
@@ -51,7 +49,7 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
                 foreach (var file in fileList)
                 {
                     // Simulate work
-                    Task.Delay(500).Wait();
+                    Task.Delay(10).Wait();
                     task.Increment(1);
                 }
             });
