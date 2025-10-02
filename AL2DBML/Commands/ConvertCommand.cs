@@ -1,8 +1,12 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using ConverterLib;
+using ConverterLib.Models;
+using ConverterLib.Services;
+using Newtonsoft.Json;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Spectre.Console.Json;
 
 namespace AL2DBML.Commands;
 
@@ -41,6 +45,7 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
         }
 
         List<string> fileList = Helper.GetALFilesToConvert(input);
+        var outputSchema = new OutputSchema();
 
         AnsiConsole.Progress()
             .Start(ctx =>
@@ -48,13 +53,21 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
                 var task = ctx.AddTask("Converting AL files to DBML...", maxValue: fileList.Count);
                 foreach (var file in fileList)
                 {
+                    var parser = new AlFileParserService(file);
+                    parser.ParseFile(ref outputSchema);
                     // Simulate work
-                    Task.Delay(10).Wait();
+                    // Task.Delay(10).Wait();
                     task.Increment(1);
                 }
             });
 
         AnsiConsole.MarkupLine($"[green]Success:[/] Converted {fileList.Count} AL files to DBML in '{output}'.");
+
+        // serialise outputSchema to JSON using Newtonsoft.Json
+        var json = JsonConvert.SerializeObject(outputSchema, Formatting.Indented);
+
+        // pretty print unsing spectre console
+        AnsiConsole.Write(new JsonText(json));
 
         return 0;
     }

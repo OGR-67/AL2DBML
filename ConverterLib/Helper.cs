@@ -78,7 +78,7 @@ public class Helper
 
     private static bool IsSchemaDefinitionFile(string filePath)
     {
-        var regex = new Regex(@"^\s*(table|tableextension|enum)\s+\d+\s+(""[^""]+""|\S+)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        var regex = new Regex(@"^\s*(table|tableextension|enum|enumextension)\s+\d+\s+(""[^""]+""|\S+)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
         var content = File.ReadAllText(filePath);
 
         return regex.IsMatch(content);
