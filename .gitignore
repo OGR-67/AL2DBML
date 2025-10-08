@@ -3,6 +3,12 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# Output schema file (dev)
+schema.json
+
+# VS Code
+.vscode
+
 # dotenv files
 .env
 

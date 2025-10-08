@@ -55,8 +55,6 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
                 {
                     var parser = new AlFileParserService(file);
                     parser.ParseFile(ref outputSchema);
-                    // Simulate work
-                    // Task.Delay(10).Wait();
                     task.Increment(1);
                 }
             });
@@ -67,7 +65,11 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
         var json = JsonConvert.SerializeObject(outputSchema, Formatting.Indented);
 
         // pretty print unsing spectre console
-        AnsiConsole.Write(new JsonText(json));
+        // AnsiConsole.Write(new JsonText(json));
+
+        // Write a JSON file of the output schema
+        var outputFile = Path.Join(output, "schema.json");
+        File.WriteAllText(outputFile, json);
 
         return 0;
     }
