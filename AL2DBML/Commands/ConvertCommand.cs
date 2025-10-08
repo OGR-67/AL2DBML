@@ -59,18 +59,25 @@ internal sealed class ConvertCommand : Command<ConvertCommand.Settings>
                 }
             });
 
-        AnsiConsole.MarkupLine($"[green]Success:[/] Converted {fileList.Count} AL files to DBML in '{output}'.");
 
+        SchemaPostProcessing.CleanupUnknownFieldReferences(ref outputSchema);
         // serialise outputSchema to JSON using Newtonsoft.Json
-        var json = JsonConvert.SerializeObject(outputSchema, Formatting.Indented);
+        // var json = JsonConvert.SerializeObject(outputSchema, Formatting.Indented);
 
         // pretty print unsing spectre console
         // AnsiConsole.Write(new JsonText(json));
 
-        // Write a JSON file of the output schema
-        var outputFile = Path.Join(output, "schema.json");
-        File.WriteAllText(outputFile, json);
+        // Write a JSON file of the output schema - Debug purpose
+        // var outputFile = Path.Join(output, "schema.json");
+        // File.WriteAllText(outputFile, json);
 
+        var dbmlParser = new DBMLFileParserService(outputSchema);
+        var dbmlContent = dbmlParser.GenerateDBMLFile(output);
+        var dbmlOutputFile = Path.Join(output, "schema.dbml");
+
+        File.WriteAllText(dbmlOutputFile, dbmlContent);
+
+        AnsiConsole.MarkupLine($"[green]Success:[/] Converted {fileList.Count} AL files to DBML in '{dbmlOutputFile}'.");
         return 0;
     }
 }

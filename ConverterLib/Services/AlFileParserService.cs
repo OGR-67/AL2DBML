@@ -5,42 +5,21 @@ namespace ConverterLib.Services;
 
 public class AlFileParserService
 {
-    private string _fileContent;
-    private string _filePath;
+    private readonly string _fileContent;
+    private readonly string _filePath;
 
     public AlFileParserService(string filePath)
     {
         _filePath = filePath;
-        _fileContent = File.ReadAllText(filePath);
-        // Normalize line endings to \n
-        _fileContent = _fileContent.Replace("\r\n", "\n").Replace("\r", "\n");
-        // Remove comments
-        _fileContent = Regex.Replace(_fileContent, @"//.*?$|/\*.*?\*/", string.Empty, RegexOptions.Singleline | RegexOptions.Multiline);
-        // Remove pragmas
-        _fileContent = Regex.Replace(_fileContent, @"#pragma\s+.*?$", string.Empty, RegexOptions.Multiline);
-    }
+        _fileContent = File.ReadAllText(filePath)
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n");
 
-    private bool IsEnumFile()
-    {
-        var regex = new Regex(@"^\s*enum\s+\d+\s+(""[^""]+""|\w+)", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-        return regex.IsMatch(_fileContent);
-    }
-    private bool IsEnumExtensionFile()
-    {
-        var RegEx = new Regex(@"^enumextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s+{", RegexOptions.Multiline);
-        return RegEx.IsMatch(_fileContent);
-    }
-
-    private bool IsTableFile()
-    {
-        var RegEx = new Regex(@"^\s*table\s+\d+\s+(""[^""]+""|\w+)", RegexOptions.Multiline);
-        return RegEx.IsMatch(_fileContent);
-    }
-
-    private bool IsTableExtensionFile()
-    {
-        var RegEx = new Regex(@"^tableextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s+{", RegexOptions.Multiline);
-        return RegEx.IsMatch(_fileContent);
+        // Remove comments and pragmas
+        _fileContent = Regex.Replace(_fileContent,
+            @"//.*?$|/\*.*?\*/|#pragma\s+.*?$",
+            string.Empty,
+            RegexOptions.Singleline | RegexOptions.Multiline);
     }
 
     public void ParseFile(ref OutputSchema outputSchema)
@@ -67,239 +46,198 @@ public class AlFileParserService
         }
     }
 
+    private bool IsEnumFile() =>
+        Regex.IsMatch(_fileContent, @"^\s*enum\s+\d+\s+(""[^""]+""|\w+)",
+            RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private bool IsEnumExtensionFile() =>
+        Regex.IsMatch(_fileContent, @"^\s*enumextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s+{",
+            RegexOptions.Multiline);
+
+    private bool IsTableFile() =>
+        Regex.IsMatch(_fileContent, @"^\s*table\s+\d+\s+(""[^""]+""|\w+)",
+            RegexOptions.Multiline);
+
+    private bool IsTableExtensionFile() =>
+        Regex.IsMatch(_fileContent, @"^\s*tableextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s+{",
+            RegexOptions.Multiline);
+
     private void ParseTableFile(ref OutputSchema outputSchema)
     {
-        var tableNameMatch = Regex.Match(_fileContent, @"^\s*table\s+\d+\s+(""[^""]+""|\w+)\s*{", RegexOptions.Multiline);
-        if (!tableNameMatch.Success)
-        {
-            throw new Exception($"Table name not found in file: {_filePath}");
-        }
-        var tableName = tableNameMatch.Groups[1].Value;
-        tableName = CleanName(tableName);
-
-        var isNewTable = false;
-        var table = GetTable(tableName, ref outputSchema, ref isNewTable);
+        var tableName = ExtractTableName(@"^\s*table\s+\d+\s+(""[^""]+""|\w+)\s*{");
+        var table = GetOrCreateTable(tableName, ref outputSchema, out bool isNewTable);
 
         var primaryKeys = GetPrimaryKeys();
-        // Example field header definitions:
-        // field(6; "Quantity Per Unit Of Measure"; Decimal)
-        // field(7; "Unit Of Measure"; Code[10])
-        // field(5; "AM / PM"; Enum "OC AM/PM")
-        var columnMatches = Regex.Matches(_fileContent, @"^\s*field\s*\(\s*\d+;\s*(""[^""]+""|\w+)\s*;\s*(Enum)?\s*(""[^""]+""|\w+(\[\d+\])?)\s*\)\s*{([^{}]*)}", RegexOptions.Multiline);
-        foreach (Match columnMatch in columnMatches)
-        {
-            var columnName = CleanName(columnMatch.Groups[1].Value);
-            var columnType = CleanName(columnMatch.Groups[3].Value);
-            var fieldBodyStr = columnMatch.Groups[5].Value;
+        ParseFields(_fileContent, table, ref outputSchema, primaryKeys);
 
-            // Extract additional properties from field body if needed
-            ProcessFieldBody(fieldBodyStr, columnType, ref outputSchema, out string ReferenceTable, out string ReferenceField, out bool IsFlowfield, out string CalcFormula);
-
-            // Check if the column already exists
-            // If it does, update its properties
-            // If it doesn't, add it
-
-            if (!table.Columns.Any(c => c.Name == columnName))
-            {
-                var column = new DBMLColumn
-                {
-                    Name = columnName,
-                    Type = columnType,
-                    IsPrimaryKey = primaryKeys.Contains(columnName),
-                    IsFlowfield = IsFlowfield,
-                    CalcFormula = CalcFormula,
-                    References = [ReferenceTable, ReferenceField]
-                };
-
-                table.Columns.Add(column);
-            }
-            else
-            {
-                var existingColumn = table.Columns.First(c => c.Name == columnName);
-                existingColumn.Type = columnType; // Update type if needed
-                existingColumn.IsPrimaryKey = primaryKeys.Contains(columnName); // Update primary key status
-                existingColumn.IsFlowfield = IsFlowfield;
-                existingColumn.CalcFormula = CalcFormula;
-            }
-
-            if (isNewTable)
-            {
-                outputSchema.Tables.Add(table);
-                isNewTable = false; // Ensure we only add it once
-            }
-        }
-    }
-
-    private List<string> GetPrimaryKeys()
-    {
-        var keysStr = Regex.Match(_fileContent, @"^\s*key\s*\(\s*(""[^""]+""|\w+)\s*;\s*([^)]*)", RegexOptions.Multiline);
-        if (!keysStr.Success)
-            return new List<string>();
-        return keysStr.Groups[2].Value.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(k => CleanName(k.Trim())).ToList();
-    }
-
-    private void ProcessFieldBody(string fieldBodyStr, string columnType, ref OutputSchema outputSchema, out string referenceTable, out string referenceField, out bool IsFlowfield, out string calcFormula)
-    {
-        referenceTable = string.Empty;
-        referenceField = string.Empty;
-        IsFlowfield = false;
-        calcFormula = string.Empty;
-
-        var flowfieldRegex = new Regex(@"^\s*FieldClass\s*=\s*(FlowField);", RegexOptions.Multiline);
-        if (flowfieldRegex.IsMatch(fieldBodyStr))
-        {
-            IsFlowfield = true;
-        }
-
-        // ^\s*CalcFormula\s*=\s*([^;]*);
-        if (IsFlowfield)
-        {
-            var CalcFormulaRegex = new Regex(@"^\s*CalcFormula\s*=\s*([^;]*);", RegexOptions.Multiline);
-            if (CalcFormulaRegex.IsMatch(fieldBodyStr))
-            {
-                calcFormula = CalcFormulaRegex.Match(fieldBodyStr).Groups[1].Value.Trim();
-            }
-        }
-
-        // ^\s*TableRelation\s*=\s*("[^"]+"|\w+)(\.("[^"]+"|\w+))?
-        var tableRelationRegex = new Regex(@"^\s*TableRelation\s*=\s*(""[^""]+""|\w+)(\.(""[^""]+""|\w+))?", RegexOptions.Multiline);
-        if (tableRelationRegex.IsMatch(fieldBodyStr))
-        {
-            var match = tableRelationRegex.Match(fieldBodyStr);
-            referenceTable = CleanName(match.Groups[1].Value);
-            if (match.Groups.Count > 3 && match.Groups[3].Success)
-            {
-                referenceField = CleanName(match.Groups[3].Value);
-            }
-            // Ensure the referenced table AND field exists in the schema
-            var isNewTable = false;
-            var refTable = GetTable(referenceTable, ref outputSchema, ref isNewTable);
-
-            var fieldName = referenceField ?? "UnknownPrimaryKey";
-
-            // Add the referenced field if it doesn't exist
-            if (!refTable.Columns.Any(c => c.Name == fieldName))
-            {
-                refTable.Columns.Add(new DBMLColumn
-                {
-                    Name = fieldName,
-                    Type = columnType,  // Use the same type as the referencing column
-                });
-            }
-
-            if (isNewTable)
-                outputSchema.Tables.Add(refTable);
-        }
+        if (isNewTable) outputSchema.Tables.Add(table);
     }
 
     private void ParseTableExtensionFile(ref OutputSchema outputSchema)
     {
-        var tableNameMatch = Regex.Match(_fileContent, @"\s*tableextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s+{", RegexOptions.Multiline);
-        if (!tableNameMatch.Success)
-        {
-            throw new Exception($"Table extension name not found in file: {_filePath}");
-        }
-        var tableName = tableNameMatch.Groups[2].Value;
-        tableName = CleanName(tableName);
+        var tableName = ExtractTableName(@"^\s*tableextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s*{", 2);
+        var table = GetOrCreateTable(tableName, ref outputSchema, out bool isNewTable);
 
-        var isNewTable = false;
-        var table = GetTable(tableName, ref outputSchema, ref isNewTable);
+        ParseFields(_fileContent, table, ref outputSchema, new List<string>());
 
-        if (isNewTable)
-            outputSchema.Tables.Add(table);
+        if (isNewTable) outputSchema.Tables.Add(table);
     }
 
-    private DBMLTable GetTable(string tableName, ref OutputSchema outputSchema, ref bool isNewTable)
+    private void ParseFields(string content, DBMLTable table, ref OutputSchema outputSchema, List<string> primaryKeys)
     {
-        var table = outputSchema.Tables.FirstOrDefault(t => t.Name == tableName);
-        if (table == null)
+        var fieldMatches = Regex.Matches(content,
+            @"^\s*field\s*\(\s*(\d+);\s*(""[^""]+""|\w+)\s*;\s*(Enum)?\s*(""[^""]+""|\w+(\[\d+\])?)\s*\)\s*{([^{}]*)}",
+            RegexOptions.Multiline);
+
+        foreach (Match fieldMatch in fieldMatches)
         {
-            table = new DBMLTable { Name = tableName };
-            isNewTable = true;
+            var columnName = CleanName(fieldMatch.Groups[2].Value);
+            var columnType = CleanName(fieldMatch.Groups[4].Value);
+            var fieldBody = fieldMatch.Groups[6].Value;
+
+            ProcessFieldBody(fieldBody, columnType, ref outputSchema,
+                out string referenceTable,
+                out string referenceField,
+                out bool isFlowField,
+                out string calcFormula);
+
+            var existingColumn = table.Columns.FirstOrDefault(c => c.Name == columnName);
+            if (existingColumn == null)
+            {
+                table.Columns.Add(new DBMLColumn
+                {
+                    Name = columnName,
+                    Type = columnType,
+                    IsPrimaryKey = primaryKeys.Contains(columnName),
+                    IsFlowfield = isFlowField,
+                    CalcFormula = calcFormula,
+                    References = [referenceTable, referenceField]
+                });
+            }
+            else
+            {
+                existingColumn.Type = columnType;
+                existingColumn.IsPrimaryKey = primaryKeys.Contains(columnName);
+                existingColumn.IsFlowfield = isFlowField;
+                existingColumn.CalcFormula = calcFormula;
+            }
         }
-        return table;
+    }
+
+    private string ExtractTableName(string pattern, int groupIndex = 1)
+    {
+        var match = Regex.Match(_fileContent, pattern, RegexOptions.Multiline);
+        return match.Success
+            ? CleanName(match.Groups[groupIndex].Value)
+            : throw new Exception($"Table name not found in file: {_filePath}");
+    }
+
+    private List<string> GetPrimaryKeys()
+    {
+        var keyMatch = Regex.Match(_fileContent,
+            @"^\s*key\s*\(\s*(""[^""]+""|\w+)\s*;\s*([^)]*)",
+            RegexOptions.Multiline);
+
+        return keyMatch.Success
+            ? keyMatch.Groups[2].Value.Split(',')
+                .Select(k => CleanName(k.Trim()))
+                .ToList()
+            : new List<string>();
+    }
+
+    private void ProcessFieldBody(string fieldBody, string columnType, ref OutputSchema outputSchema,
+        out string referenceTable, out string referenceField, out bool isFlowField, out string calcFormula)
+    {
+        referenceTable = referenceField = calcFormula = string.Empty;
+        isFlowField = false;
+
+        // Check if flowfield
+        var flowFieldMatch = Regex.Match(fieldBody, @"^\s*FieldClass\s*=\s*FlowField\s*;", RegexOptions.Multiline);
+        if (flowFieldMatch.Success)
+        {
+            isFlowField = true;
+            var calcFormulaMatch = Regex.Match(fieldBody, @"^\s*CalcFormula\s*=\s*([^;]+)\s*;", RegexOptions.Multiline);
+            if (calcFormulaMatch.Success)
+                calcFormula = Regex.Replace(calcFormulaMatch.Groups[1].Value.Trim(), @"\s+", " "); // Remove line breaks and extra spaces
+        }
+
+        // Check table relations
+        var relationMatch = Regex.Match(fieldBody,
+            @"^\s*TableRelation\s*=\s*(""[^""]+""|\w+)(\.(""[^""]+""|\w+))?",
+            RegexOptions.Multiline);
+
+        if (relationMatch.Success)
+        {
+            referenceTable = CleanName(relationMatch.Groups[1].Value);
+            referenceField = relationMatch.Groups.Count > 3 && relationMatch.Groups[3].Success
+                ? CleanName(relationMatch.Groups[3].Value)
+                : "UnknownField";
+
+            EnsureReferenceExists(referenceTable, referenceField, columnType, ref outputSchema);
+        }
+    }
+
+    private void EnsureReferenceExists(string tableName, string fieldName, string fieldType, ref OutputSchema outputSchema)
+    {
+        var refTable = GetOrCreateTable(tableName, ref outputSchema, out bool isNew);
+        var targetField = !string.IsNullOrEmpty(fieldName) ? fieldName : "Id";
+
+        if (refTable.Columns.All(c => c.Name != targetField))
+        {
+            refTable.Columns.Add(new DBMLColumn { Name = targetField, Type = fieldType });
+        }
+
+        if (isNew) outputSchema.Tables.Add(refTable);
+    }
+
+    private DBMLTable GetOrCreateTable(string name, ref OutputSchema outputSchema, out bool isNew)
+    {
+        var table = outputSchema.Tables.FirstOrDefault(t => t.Name == name);
+        isNew = table == null;
+        return table ?? new DBMLTable { Name = name };
     }
 
     private void ParseEnumFile(ref OutputSchema outputSchema)
     {
-        var enumNameMatch = Regex.Match(_fileContent, @"^\s*enum\s+\d+\s+(""[^""]+""|\w+)\s*{", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-        if (!enumNameMatch.Success)
-        {
-            throw new Exception($"Enum name not found in file: {_filePath}");
-        }
-        var enumName = enumNameMatch.Groups[1].Value;
-        enumName = CleanName(enumName);
-
-        var isNewEnum = false;
-        var dbmlEnum = GetEnum(enumName, ref outputSchema, ref isNewEnum);
-
-        var enumValues = GetEnumValues();
-
-        foreach (var value in enumValues)
-        {
-            if (!dbmlEnum.Values.Contains(value))
-            {
-                dbmlEnum.Values.Add(value);
-            }
-        }
-
-        if (isNewEnum)
-            outputSchema.Enums.Add(dbmlEnum);
+        var enumName = ExtractEnumName(@"^\s*enum\s+\d+\s+(""[^""]+""|\w+)\s*{");
+        var dbmlEnum = GetOrCreateEnum(enumName, ref outputSchema, out bool isNew);
+        dbmlEnum.Values = GetEnumValues();
+        if (isNew) outputSchema.Enums.Add(dbmlEnum);
     }
 
     private void ParseEnumExtensionFile(ref OutputSchema outputSchema)
     {
-        var enumNameMatch = Regex.Match(_fileContent, @"\s*enumextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s+{", RegexOptions.Multiline);
-        if (!enumNameMatch.Success)
-        {
-            throw new Exception($"Enum extension name not found in file: {_filePath}");
-        }
-        var enumName = enumNameMatch.Groups[2].Value;
-        enumName = CleanName(enumName);
+        var enumName = ExtractEnumName(@"^\s*enumextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s*{", 2);
+        var dbmlEnum = GetOrCreateEnum(enumName, ref outputSchema, out bool isNew);
+        var newValues = GetEnumValues();
 
-        var isNewEnum = false;
-        var dbmlEnum = GetEnum(enumName, ref outputSchema, ref isNewEnum);
-        var enumValues = GetEnumValues();
-
-        foreach (var value in enumValues)
+        foreach (var value in newValues)
         {
-            if (!dbmlEnum.Values.Contains(value))
-            {
-                dbmlEnum.Values.Add(value);
-            }
+            if (!dbmlEnum.Values.Contains(value)) dbmlEnum.Values.Add(value);
         }
 
-        if (isNewEnum)
-            outputSchema.Enums.Add(dbmlEnum);
+        if (isNew) outputSchema.Enums.Add(dbmlEnum);
     }
 
-    private DBMLEnum GetEnum(string enumName, ref OutputSchema outputSchema, ref bool isNewEnum)
+    private string ExtractEnumName(string pattern, int groupIndex = 1)
     {
-        var dbmlEnum = outputSchema.Enums.FirstOrDefault(e => e.Name == enumName);
-        if (dbmlEnum == null)
-        {
-            dbmlEnum = new DBMLEnum { Name = enumName };
-            isNewEnum = true;
-        }
-        return dbmlEnum;
+        var match = Regex.Match(_fileContent, pattern, RegexOptions.Multiline);
+        return match.Success
+            ? CleanName(match.Groups[groupIndex].Value)
+            : throw new Exception($"Enum name not found in file: {_filePath}");
     }
 
-    private List<string> GetEnumValues()
+    private List<string> GetEnumValues() =>
+        Regex.Matches(_fileContent, @"^\s*value\(\s*\d+;\s*(""[^""]+""|\w+)", RegexOptions.Multiline)
+            .Select(m => CleanName(m.Groups[1].Value))
+            .ToList();
+
+    private DBMLEnum GetOrCreateEnum(string name, ref OutputSchema outputSchema, out bool isNew)
     {
-        var enumValues = new List<string>();
-        var matches = Regex.Matches(_fileContent, @"^\s*value\(\s*(\d+)\s*;\s*(""[^""]+""|\w+)", RegexOptions.Multiline);
-        foreach (Match match in matches)
-        {
-            var value = match.Groups[2].Value;
-            value = CleanName(value);
-            enumValues.Add(value);
-        }
-        return enumValues;
+        var dbmlEnum = outputSchema.Enums.FirstOrDefault(e => e.Name == name);
+        isNew = dbmlEnum == null;
+        return dbmlEnum ?? new DBMLEnum { Name = name, Values = new List<string>() };
     }
 
-    private string CleanName(string name)
-    {
-        return name.Replace("\"", "");
-    }
+    private static string CleanName(string name) => name.Replace("\"", "");
 }

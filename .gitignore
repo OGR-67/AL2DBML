@@ -3,8 +3,9 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
-# Output schema file (dev)
-schema.json
+# Output schema file 
+schema.json 
+*.dbml
 
 # VS Code
 .vscode
