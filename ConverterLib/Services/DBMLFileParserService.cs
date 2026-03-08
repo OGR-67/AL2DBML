@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using ConverterLib.Models;
 
 namespace ConverterLib.Services;
@@ -12,6 +13,10 @@ public class DBMLFileParserService
     {
         _outputSchema = outputSchema;
     }
+
+    // Quote identifiers that contain spaces, dots, or any non-alphanumeric/underscore character
+    private static string Q(string name) =>
+        Regex.IsMatch(name, @"[^a-zA-Z0-9_]") ? $"\"{name}\"" : name;
 
     public string GenerateDBMLFile(string outputPath)
     {
@@ -29,13 +34,10 @@ public class DBMLFileParserService
 
         foreach (var table in _outputSchema.Tables)
         {
-            var tableName = table.Name.Contains(' ') ? $"\"{table.Name}\"" : table.Name;
-            outputString += $"table {tableName} {{\n";
+            outputString += $"table {Q(table.Name)} {{\n";
             foreach (var column in table.Columns)
             {
-                var columnName = (column.Name.Contains(' ') || column.Name.EndsWith(".")) ? $"\"{column.Name}\"" : column.Name;
-                var columnType = (column.Type.Contains(' ') || column.Type.EndsWith(".")) ? $"\"{column.Type}\"" : column.Type;
-                outputString += $"  {columnName} {columnType}";
+                outputString += $"  {Q(column.Name)} {Q(column.Type)}";
 
                 var columnAttributes = new List<string>();
 
@@ -45,13 +47,12 @@ public class DBMLFileParserService
                 }
                 if (column.References?[0] != null && column.References?[0] != "" && column.References.Length == 2)
                 {
-                    var refTable = (column.References[0].Contains(' ') || column.References[0].EndsWith(".")) ? $"\"{column.References[0]}\"" : column.References[0];
-                    var refColumn = (column.References[1].Contains(' ') || column.References[1].EndsWith(".")) ? $"\"{column.References[1]}\"" : column.References[1];
-                    columnAttributes.Add($"ref: > {refTable}.{refColumn}");
+                    columnAttributes.Add($"ref: > {Q(column.References[0])}.{Q(column.References[1])}");
                 }
                 if (column.IsFlowfield && !string.IsNullOrEmpty(column.CalcFormula))
                 {
-                    columnAttributes.Add($"note: 'FlowField: CalcFormula = {column.CalcFormula}'");
+                    var escapedFormula = column.CalcFormula.Replace("'", "\\'");
+                    columnAttributes.Add($"note: 'FlowField: CalcFormula = {escapedFormula}'");
                 }
 
                 if (columnAttributes.Count > 0)
@@ -72,12 +73,10 @@ public class DBMLFileParserService
 
         foreach (var enumObj in _outputSchema.Enums)
         {
-            var enumName = enumObj.Name.Contains(' ') ? $"\"{enumObj.Name}\"" : enumObj.Name;
-            outputString += $"enum {enumName} {{\n";
+            outputString += $"enum {Q(enumObj.Name)} {{\n";
             foreach (var value in enumObj.Values)
             {
-                var cleanValue = value.Contains(' ') ? $"\"{value}\"" : value;
-                outputString += $"  {cleanValue}\n";
+                outputString += $"  {Q(value)}\n";
             }
             outputString += "}\n\n";
         }

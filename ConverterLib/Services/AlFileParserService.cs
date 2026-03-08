@@ -67,10 +67,10 @@ public class AlFileParserService
         var tableName = ExtractTableName(@"^\s*table\s+\d+\s+(""[^""]+""|\w+)\s*{");
         var table = GetOrCreateTable(tableName, ref outputSchema, out bool isNewTable);
 
+        if (isNewTable) outputSchema.Tables.Add(table);
+
         var primaryKeys = GetPrimaryKeys();
         ParseFields(_fileContent, table, ref outputSchema, primaryKeys);
-
-        if (isNewTable) outputSchema.Tables.Add(table);
     }
 
     private void ParseTableExtensionFile(ref OutputSchema outputSchema)
@@ -78,9 +78,9 @@ public class AlFileParserService
         var tableName = ExtractTableName(@"^\s*tableextension\s+\d+\s+(""[^""]+""|\w+)\s+extends\s+(""[^""]+""|\w+)\s*{", 2);
         var table = GetOrCreateTable(tableName, ref outputSchema, out bool isNewTable);
 
-        ParseFields(_fileContent, table, ref outputSchema, new List<string>());
-
         if (isNewTable) outputSchema.Tables.Add(table);
+
+        ParseFields(_fileContent, table, ref outputSchema, new List<string>());
     }
 
     private void ParseFields(string content, DBMLTable table, ref OutputSchema outputSchema, List<string> primaryKeys)
@@ -199,7 +199,9 @@ public class AlFileParserService
 
     private void ParseEnumFile(ref OutputSchema outputSchema)
     {
-        var enumName = ExtractEnumName(@"^\s*enum\s+\d+\s+(""[^""]+""|\w+)\s*{");
+        // Take into account that enum can implement interfaces
+        // var enumName = ExtractEnumName(@"^\s*enum\s+\d+\s+(""[^""]+""|\w+)\s*{");
+        var enumName = ExtractEnumName(@"^\s*enum\s+\d+\s+(""[^""]+""|\w+)(\s+implements\s+(""[^""]+""|\w+)(\s*,\s*(""[^""]+""|\w+))*)?\s*{", 1);
         var dbmlEnum = GetOrCreateEnum(enumName, ref outputSchema, out bool isNew);
         dbmlEnum.Values = GetEnumValues();
         if (isNew) outputSchema.Enums.Add(dbmlEnum);
@@ -239,5 +241,13 @@ public class AlFileParserService
         return dbmlEnum ?? new DBMLEnum { Name = name, Values = new List<string>() };
     }
 
-    private static string CleanName(string name) => name.Replace("\"", "");
+    private static string CleanName(string name)
+    {
+        if (name.Contains('/'))
+        {
+            if (!name.StartsWith('"'))
+                return $"\"{name}\"";
+        }
+        return name.Replace("\"", "");
+    }
 }
