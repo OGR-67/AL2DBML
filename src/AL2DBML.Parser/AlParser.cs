@@ -35,6 +35,18 @@ public class AlParser : IAlParser
         return dbmlEnum;
     }
 
+    public DBMLEnum ParseEnumExtension(string content)
+    {
+        var enumName = AlSyntaxHelper.ExtractMatch(content, Patterns.EnumExtension, 2);
+        var dbmlEnum = GetOrCreateEnum(enumName, out bool isNew);
+        foreach (var value in AlSyntaxHelper.ExtractAllMatches(content, Patterns.EnumValue))
+        {
+            if (!dbmlEnum.Values.Contains(value)) dbmlEnum.Values.Add(value);
+        }
+        if (isNew) _outputSchema.Enums.Add(dbmlEnum);
+        return dbmlEnum;
+    }
+
     private DBMLEnum GetOrCreateEnum(string name, out bool isNew)
     {
         var existing = _outputSchema.Enums.FirstOrDefault(e => e.Name == name);

@@ -7,4 +7,5 @@ public interface IAlParser
 {
     AlFileType DetectFileType(string alFileContent);
     DBMLEnum ParseEnum(string alEnumFileContent);
+    DBMLEnum ParseEnumExtension(string alEnumExtensionFileContent);
 }
