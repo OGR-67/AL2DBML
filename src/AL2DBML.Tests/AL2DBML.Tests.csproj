@@ -18,10 +18,15 @@
     <ProjectReference Include="../AL2DBML.Application/AL2DBML.Application.csproj" />
     <ProjectReference Include="../AL2DBML.Core/AL2DBML.Core.csproj" />
     <ProjectReference Include="../AL2DBML.Parser/AL2DBML.Parser.csproj" />
+    <ProjectReference Include="..\AL2DBML.DI\AL2DBML.DI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+      <EmbeddedResource Include="Fixtures/**/*.al" />
   </ItemGroup>
 
 </Project>

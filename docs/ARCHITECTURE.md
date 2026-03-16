@@ -22,4 +22,5 @@ graph TD
     TESTS --> APP
     TESTS --> PARSER
     TESTS --> CORE
+    TESTS --> DI
 ```
