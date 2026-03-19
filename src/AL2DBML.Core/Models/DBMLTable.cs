@@ -1,7 +1,7 @@
 namespace AL2DBML.Core.Models;
 
-public class DBMLEnum
+public class DBMLTable
 {
     public string Name { get; set; } = string.Empty;
-    public List<string> Values { get; set; } = [];
+    public List<DBMLColumn> Fields { get; set; } = [];
 }

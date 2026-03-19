@@ -8,4 +8,7 @@ public interface IAlParser
     AlFileType DetectFileType(string alFileContent);
     DBMLEnum ParseEnum(string alEnumFileContent);
     DBMLEnum ParseEnumExtension(string alEnumExtensionFileContent);
+    DBMLTable ParseTable(string alTableFileContent);
+    DBMLTable ParseTableExtension(string alTableExtensionFileContent);
+    DBMLColumn ParseField(string alFieldContent);
 }
