@@ -11,4 +11,5 @@ public interface IAlParser
     DBMLTable ParseTable(string alTableFileContent);
     DBMLTable ParseTableExtension(string alTableExtensionFileContent);
     DBMLColumn ParseField(string alFieldContent);
+    OutputSchema GetOutputSchema();
 }

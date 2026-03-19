@@ -174,4 +174,9 @@ public class AlParser : IAlParser
             CalcFormula = calcFormula
         };
     }
+
+    public OutputSchema GetOutputSchema()
+    {
+        return _outputSchema;
+    }
 }
