@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 
+namespace AL2DBML.Parser.Helpers;
+
 internal class AlSyntaxHelper
 {
     public static string CleanName(string name)
