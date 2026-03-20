@@ -8,5 +8,6 @@ public static class AL2DbmlServiceExtensions
     public static IServiceCollection AddAL2Dbml(this IServiceCollection services)
         => services
             .AddApplication()
-            .AddParser();
+            .AddParser()
+            .AddWriter();
 }
