@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AL2DBML.Application", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AL2DBML.DI", "src\AL2DBML.DI\AL2DBML.DI.csproj", "{6F45FC15-7CA3-4F71-9900-3AE77ED9C14B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBMLWriter", "src\DBMLWriter\DBMLWriter.csproj", "{D2033B53-9C03-47D9-BA96-2A59F5FDCC95}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AL2DBLM.DBMLWriter", "src\DBMLWriter\AL2DBLM.DBMLWriter.csproj", "{D2033B53-9C03-47D9-BA96-2A59F5FDCC95}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

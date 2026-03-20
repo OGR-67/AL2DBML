@@ -3,13 +3,13 @@ using System.Text.RegularExpressions;
 using AL2DBML.Application.Interfaces;
 using AL2DBML.Core.Models;
 
-namespace DBMLWriter;
+namespace AL2DBML.DBMLWriter;
 
-public class Writer : IDBMLWriter
+public class DBLMWriter : IDBMLWriter
 {
     private readonly ISchemaPostProcessor _postProcessor;
 
-    public Writer(ISchemaPostProcessor postProcessor)
+    public DBLMWriter(ISchemaPostProcessor postProcessor)
     {
         _postProcessor = postProcessor;
     }
@@ -57,7 +57,7 @@ public class Writer : IDBMLWriter
                 if (field.IsPrimaryKey)
                     attributes.Add("pk");
 
-                if (field.References is { Length: 2 } refs && !string.IsNullOrEmpty(refs[0]))
+                if (field.References is { Length: 2 } refs && !string.IsNullOrEmpty(refs[0]) && !string.IsNullOrEmpty(refs[1]))
                     attributes.Add($"ref: > {Quotes(refs[0])}.{Quotes(refs[1])}");
 
                 if (field.IsFlowfield && !string.IsNullOrEmpty(field.CalcFormula))

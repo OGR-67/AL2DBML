@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using AL2DBML.Application.Helpers;
 using AL2DBML.Application.Interfaces;
 using AL2DBML.Core.Enums;
 using AL2DBML.Core.Models;
@@ -177,6 +178,6 @@ public class AlParser : IAlParser
 
     public OutputSchema GetOutputSchema()
     {
-        return _outputSchema;
+        return OutputSchemaHelper.DeepCopy(_outputSchema);
     }
 }

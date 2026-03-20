@@ -10,7 +10,7 @@
     <ProjectReference Include="../AL2DBML.Application/AL2DBML.Application.csproj" />
     <ProjectReference Include="../AL2DBML.Core/AL2DBML.Core.csproj" />
     <ProjectReference Include="../AL2DBML.Parser/AL2DBML.Parser.csproj" />
-    <ProjectReference Include="../DBMLWriter/DBMLWriter.csproj" />
+    <ProjectReference Include="../DBMLWriter/AL2DBLM.DBMLWriter.csproj" />
   </ItemGroup>
 
   <ItemGroup>

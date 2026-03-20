@@ -53,13 +53,13 @@ public class WriterTests : TestBase
     {
         var schema = new OutputSchema
         {
-            Tables = [new DBMLTable { Name = "Customer", Fields = [new DBMLColumn { Name = "Name", Type = "Integer" }] }]
+            Tables = [new DBMLTable { Name = "Customer", Fields = [new DBMLColumn { Name = "Name", Type = "Code[20]" }] }]
         };
 
         var result = await _writer.WriteDBMLAsync(schema);
 
         Assert.Contains("table Customer {", result);
-        Assert.Contains("  Name Integer", result);
+        Assert.Contains("  Name \"Code[20]\"", result);
     }
 
     [Fact]
@@ -72,14 +72,14 @@ public class WriterTests : TestBase
                 new DBMLTable
                 {
                     Name = "Customer",
-                    Fields = [new DBMLColumn { Name = "No.", Type = "Integer", IsPrimaryKey = true }]
+                    Fields = [new DBMLColumn { Name = "No.", Type = "Code[20]", IsPrimaryKey = true }]
                 }
             ]
         };
 
         var result = await _writer.WriteDBMLAsync(schema);
 
-        Assert.Contains("  \"No.\" Integer [pk]", result);
+        Assert.Contains("  \"No.\" \"Code[20]\" [pk]", result);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public class WriterTests : TestBase
                     Name = "SalesLine",
                     Fields =
                     [
-                        new DBMLColumn { Name = "CustomerNo", Type = "Integer", References = ["Customer", "Id"] }
+                        new DBMLColumn { Name = "CustomerNo", Type = "Code[20]", References = ["Customer", "Id"] }
                     ]
                 }
             ]
@@ -117,7 +117,7 @@ public class WriterTests : TestBase
                     Name = "SalesLine",
                     Fields =
                     [
-                        new DBMLColumn { Name = "CustomerNo", Type = "Integer", References = ["Customer", "No."] }
+                        new DBMLColumn { Name = "CustomerNo", Type = "Code[20]", References = ["Customer", "No."] }
                     ]
                 }
             ]
@@ -138,7 +138,7 @@ public class WriterTests : TestBase
                 new DBMLTable
                 {
                     Name = "Salesperson/Purchaser",
-                    Fields = [new DBMLColumn { Name = "Code", Type = "Integer" }]
+                    Fields = [new DBMLColumn { Name = "Code", Type = "Code[20]" }]
                 }
             ]
         };
@@ -158,14 +158,14 @@ public class WriterTests : TestBase
                 new DBMLTable
                 {
                     Name = "Customer",
-                    Fields = [new DBMLColumn { Name = "Search Name", Type = "Integer" }]
+                    Fields = [new DBMLColumn { Name = "Search Name", Type = "Code[20]" }]
                 }
             ]
         };
 
         var result = await _writer.WriteDBMLAsync(schema);
 
-        Assert.Contains("  \"Search Name\" Integer", result);
+        Assert.Contains("  \"Search Name\" \"Code[20]\"", result);
     }
 
     [Fact]
@@ -252,7 +252,7 @@ public class WriterTests : TestBase
         var schema = new OutputSchema
         {
             Enums = [new DBMLEnum { Name = "Status", Values = ["Active"] }],
-            Tables = [new DBMLTable { Name = "Customer", Fields = [new DBMLColumn { Name = "Id", Type = "Integer" }] }]
+            Tables = [new DBMLTable { Name = "Customer", Fields = [new DBMLColumn { Name = "Id", Type = "Code[20]" }] }]
         };
 
         var result = await _writer.WriteDBMLAsync(schema);
@@ -274,8 +274,8 @@ public class WriterTests : TestBase
                     Name = "Customer",
                     Fields =
                     [
-                        new DBMLColumn { Name = "Id", Type = "Integer", IsPrimaryKey = true },
-                        new DBMLColumn { Name = "UnknownField", Type = "Integer" }
+                        new DBMLColumn { Name = "Id", Type = "Code[20]", IsPrimaryKey = true },
+                        new DBMLColumn { Name = "UnknownField", Type = "Code[20]" }
                     ]
                 }
             ]
@@ -299,12 +299,12 @@ public class WriterTests : TestBase
                 new DBMLTable
                 {
                     Name = "Customer",
-                    Fields = [new DBMLColumn { Name = "Id", Type = "Integer", IsPrimaryKey = true }]
+                    Fields = [new DBMLColumn { Name = "Id", Type = "Code[20]", IsPrimaryKey = true }]
                 },
                 new DBMLTable
                 {
                     Name = "SalesLine",
-                    Fields = [new DBMLColumn { Name = "CustomerNo", Type = "Integer", References = ["Customer", "UnknownField"] }]
+                    Fields = [new DBMLColumn { Name = "CustomerNo", Type = "Code[20]", References = ["Customer", "UnknownField"] }]
                 }
             ]
         };
@@ -325,19 +325,19 @@ public class WriterTests : TestBase
                 new DBMLTable
                 {
                     Name = "Customer",
-                    Fields = [new DBMLColumn { Name = "Id", Type = "Guid", IsPrimaryKey = true }]
+                    Fields = [new DBMLColumn { Name = "No", Type = "Code[20]", IsPrimaryKey = true }]
                 },
                 new DBMLTable
                 {
                     Name = "SalesLine",
-                    Fields = [new DBMLColumn { Name = "CustomerNo", Type = "Integer", References = ["Customer", "UnknownField"] }]
+                    Fields = [new DBMLColumn { Name = "CustomerNo", Type = "Code[20]", References = ["Customer", "UnknownField"] }]
                 }
             ]
         };
 
         var result = await _writer.WriteDBMLAsync(schema);
 
-        Assert.Contains("  CustomerNo Guid", result);
+        Assert.Contains("CustomerNo \"Code[20]\"", result);
     }
 
     [Fact]
@@ -352,8 +352,8 @@ public class WriterTests : TestBase
                     Name = "Customer",
                     Fields =
                     [
-                        new DBMLColumn { Name = "Id", Type = "Integer", IsPrimaryKey = true },
-                        new DBMLColumn { Name = "UnknownField", Type = "Integer" }
+                        new DBMLColumn { Name = "Id", Type = "Code[20]", IsPrimaryKey = true },
+                        new DBMLColumn { Name = "UnknownField", Type = "Code[20]" }
                     ]
                 }
             ]
@@ -376,14 +376,14 @@ public class WriterTests : TestBase
                     Name = "SalesLine",
                     Fields =
                     [
-                        new DBMLColumn { Name = "DocType", Type = "Integer", IsPrimaryKey = true },
-                        new DBMLColumn { Name = "LineNo", Type = "Integer", IsPrimaryKey = true }
+                        new DBMLColumn { Name = "DocType", Type = "Code[20]", IsPrimaryKey = true },
+                        new DBMLColumn { Name = "LineNo", Type = "Code[20]", IsPrimaryKey = true }
                     ]
                 },
                 new DBMLTable
                 {
                     Name = "SalesSubLine",
-                    Fields = [new DBMLColumn { Name = "SalesNo", Type = "Integer", References = ["SalesLine", "UnknownField"] }]
+                    Fields = [new DBMLColumn { Name = "SalesNo", Type = "Code[20]", References = ["SalesLine", "UnknownField"] }]
                 }
             ]
         };
@@ -407,21 +407,21 @@ public class WriterTests : TestBase
                     Name = "Customer",
                     Fields =
                     [
-                        new DBMLColumn { Name = "Id", Type = "Integer" },
-                        new DBMLColumn { Name = "UnknownField", Type = "Integer" }
+                        new DBMLColumn { Name = "Id", Type = "Code[20]" },
+                        new DBMLColumn { Name = "UnknownField", Type = "Code[20]" }
                     ]
                 },
                 new DBMLTable
                 {
                     Name = "SalesLine",
-                    Fields = [new DBMLColumn { Name = "CustomerNo", Type = "Integer", References = ["Customer", "UnknownField"] }]
+                    Fields = [new DBMLColumn { Name = "CustomerNo", Type = "Code[20]", References = ["Customer", "UnknownField"] }]
                 }
             ]
         };
 
         var result = await _writer.WriteDBMLAsync(schema);
 
-        Assert.Contains("Id Integer [pk]", result);
+        Assert.Contains("Id \"Code[20]\" [pk]", result);
         Assert.Contains("ref: > Customer.Id", result);
         Assert.DoesNotContain("UnknownField", result);
     }
@@ -438,9 +438,9 @@ public class WriterTests : TestBase
                     Name = "Customer",
                     Fields =
                     [
-                        new DBMLColumn { Name = "Id", Type = "Integer" },
-                        new DBMLColumn { Name = "Name", Type = "Integer" },
-                        new DBMLColumn { Name = "UnknownField", Type = "Integer" }
+                        new DBMLColumn { Name = "Id", Type = "Code[20]" },
+                        new DBMLColumn { Name = "Name", Type = "Code[20]" },
+                        new DBMLColumn { Name = "UnknownField", Type = "Code[20]" }
                     ]
                 }
             ]
