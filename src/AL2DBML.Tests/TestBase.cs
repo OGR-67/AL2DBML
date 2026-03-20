@@ -7,6 +7,7 @@ public abstract class TestBase
 {
     protected IServiceProvider Services { get; }
     protected IAlParser _parser { get; private set; }
+    protected IDBMLWriter _writer { get; private set; }
 
     protected TestBase()
     {
@@ -15,6 +16,7 @@ public abstract class TestBase
             .BuildServiceProvider();
 
         _parser = Services.GetRequiredService<IAlParser>();
+        _writer = Services.GetRequiredService<IDBMLWriter>();
     }
 
     protected void ResetParser()
