@@ -82,7 +82,13 @@ public class InitCommand : AsyncCommand<InitSettings>
     private static void WritePreCommitHook()
     {
         const string hookPath = ".git/hooks/pre-commit";
-        var hookSection = $"{HookStartMarker}\nif command -v al2dbml > /dev/null 2>&1; then\n    {HookCommand} || echo \"Warning: al2dbml generate failed, skipping DBML update.\"\nelse\n    echo \"Warning: al2dbml not found, skipping DBML update.\"\nfi\n{HookEndMarker}";
+
+        if (!Directory.Exists(".git/hooks"))
+        {
+            AnsiConsole.MarkupLine("[yellow]Warning:[/] .git/hooks directory not found — skipping pre-commit hook creation.");
+            return;
+        }
+        var hookSection = $"{HookStartMarker}\nif command -v al2dbml > /dev/null 2>&1; then\n    {HookCommand} || printf \"\\033[33mWarning: al2dbml generate failed, skipping DBML update.\\033[0m\\n\"\nelse\n    printf \"\\033[33mWarning: al2dbml not found, skipping DBML update.\\033[0m\\n\"\nfi\n{HookEndMarker}";
 
         string content;
         if (File.Exists(hookPath))

@@ -13,18 +13,21 @@ public class ConfigService : IConfigService
 
     public bool ConfigExists() => Directory.Exists(ConfigDir);
 
-    public SharedConfig? LoadSharedConfig()
-    {
-        var path = Path.Combine(ConfigDir, SharedConfigFile);
-        if (!File.Exists(path)) return null;
-        return JsonSerializer.Deserialize<SharedConfig>(File.ReadAllText(path), JsonOptions);
-    }
+    public SharedConfig? LoadSharedConfig() => Load<SharedConfig>(Path.Combine(ConfigDir, SharedConfigFile));
 
-    public LocalConfig? LoadLocalConfig()
+    public LocalConfig? LoadLocalConfig() => Load<LocalConfig>(Path.Combine(ConfigDir, LocalConfigFile));
+
+    private static T? Load<T>(string path)
     {
-        var path = Path.Combine(ConfigDir, LocalConfigFile);
-        if (!File.Exists(path)) return null;
-        return JsonSerializer.Deserialize<LocalConfig>(File.ReadAllText(path), JsonOptions);
+        if (!File.Exists(path)) return default;
+        try
+        {
+            return JsonSerializer.Deserialize<T>(File.ReadAllText(path), JsonOptions);
+        }
+        catch (Exception e) when (e is IOException or JsonException)
+        {
+            return default;
+        }
     }
 
     public void SaveSharedConfig(SharedConfig config)
