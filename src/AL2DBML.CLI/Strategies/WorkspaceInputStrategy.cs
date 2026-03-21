@@ -26,6 +26,10 @@ class WorkspaceInputStrategy : IInputStrategy
         {
             throw new InvalidDataException("Invalid workspace file: 'folders' property not found.");
         }
+        if (folders.ValueKind != JsonValueKind.Array)
+        {
+            throw new InvalidDataException("Invalid workspace file: 'folders' property must be an array.");
+        }
         foreach (var folder in folders.EnumerateArray())
         {
             if (!folder.TryGetProperty("path", out var path))

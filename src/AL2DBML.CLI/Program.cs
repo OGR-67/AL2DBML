@@ -26,7 +26,7 @@ return await app.RunAsync(args);
 
 public sealed class TypeRegistrar(IServiceCollection services) : ITypeRegistrar
 {
-    public ITypeResolver Build() => new TypeResolver(services.BuildServiceProvider());
+    public ITypeResolver Build() => new TypeResolver(services.BuildServiceProvider().CreateScope().ServiceProvider);
 
     public void Register(Type service, Type implementation) => services.AddScoped(service, implementation);
 
