@@ -180,4 +180,10 @@ public class AlParser : IAlParser
     {
         return OutputSchemaHelper.DeepCopy(_outputSchema);
     }
+
+    public void ClearOutputSchema()
+    {
+        _outputSchema.Enums.Clear();
+        _outputSchema.Tables.Clear();
+    }
 }

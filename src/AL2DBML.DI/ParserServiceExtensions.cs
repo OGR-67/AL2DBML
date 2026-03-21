@@ -8,6 +8,7 @@ public static class ParserServiceExtensions
 {
     public static IServiceCollection AddParser(this IServiceCollection services)
     {
+        // Scoped because we want to maintain state across multiple parsing operations
         services.AddScoped<IAlParser, AlParser>();
         return services;
     }
