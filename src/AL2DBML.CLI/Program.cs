@@ -11,7 +11,9 @@ var services = new ServiceCollection();
 services
     .AddAL2Dbml()
     .AddScoped<GenerateCommand>()
-    .AddScoped<IParsingTracker, ParsingTracker>();
+    .AddScoped<InitCommand>()
+    .AddScoped<IParsingTracker, ParsingTracker>()
+    .AddScoped<IConfigService, ConfigService>();
 
 var registrar = new TypeRegistrar(services);
 
@@ -20,6 +22,7 @@ var app = new CommandApp(registrar);
 app.Configure(config =>
 {
     config.AddCommand<GenerateCommand>("generate");
+    config.AddCommand<InitCommand>("init");
 });
 
 return await app.RunAsync(args);
