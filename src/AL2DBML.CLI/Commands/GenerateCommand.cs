@@ -14,7 +14,7 @@ public class GenerateSettings : CommandSettings
     public string InputPath { get; init; } = ".";
 
     [CommandOption("-o|--output <OUTPUT_PATH>")]
-    [Description("The path to the output file or directory.")]
+    [Description("The path to the output directory.")]
     public string OutputPath { get; init; } = ".";
 
     [CommandOption("-n|--name <OUTPUT_NAME>")]
@@ -26,11 +26,13 @@ public class GenerateCommand : AsyncCommand<GenerateSettings>
 {
     private readonly IAlParser _alParser;
     private readonly IDBMLWriter _dbmlWriter;
+    private readonly IParsingTracker _tracker;
 
-    public GenerateCommand(IAlParser alParser, IDBMLWriter dbmlWriter)
+    public GenerateCommand(IAlParser alParser, IDBMLWriter dbmlWriter, IParsingTracker tracker)
     {
         _alParser = alParser;
         _dbmlWriter = dbmlWriter;
+        _tracker = tracker;
     }
 
     protected override async Task<int> ExecuteAsync(CommandContext context, GenerateSettings settings, CancellationToken cancellationToken)
@@ -43,12 +45,15 @@ public class GenerateCommand : AsyncCommand<GenerateSettings>
         }
 
         var outputPath = Path.Combine(settings.OutputPath, $"{settings.OutputName}.dbml");
+        Directory.CreateDirectory(settings.OutputPath);
 
-        var factory = new InputStrategyFactory(inputType, _alParser);
+        var factory = new InputStrategyFactory(inputType, _alParser, _tracker);
         var outputSchema = factory.Strategy.Execute(settings.InputPath);
 
         var dbmlContent = await _dbmlWriter.WriteDBMLAsync(outputSchema);
-        File.WriteAllText(outputPath, dbmlContent);
+        await File.WriteAllTextAsync(outputPath, dbmlContent, cancellationToken);
+
+        AnsiConsole.MarkupLine($"[green]Done:[/] {_tracker.FileCount} file(s) parsed in {_tracker.Elapsed.TotalSeconds:F2}s → {Markup.Escape(outputPath)}");
 
         return 0;
     }

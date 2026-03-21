@@ -8,8 +8,8 @@ public static class ParserServiceExtensions
 {
     public static IServiceCollection AddParser(this IServiceCollection services)
     {
-        // Singleton because we want to maintain state across multiple parsing operations
-        services.AddSingleton<IAlParser, AlParser>();
+        // Scoped because we want to maintain state across multiple parsing operations
+        services.AddScoped<IAlParser, AlParser>();
         return services;
     }
 }

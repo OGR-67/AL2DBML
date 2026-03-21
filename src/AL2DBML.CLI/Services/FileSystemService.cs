@@ -23,14 +23,7 @@ public static class FileSystemService
 
     public static List<string> ScanDirectory(string directoryPath)
     {
-        var paths = new List<string>();
-        var files = Directory.GetFiles(directoryPath, "*.al", SearchOption.AllDirectories);
-
-        foreach (var file in files)
-        {
-            paths.Add(file);
-        }
-
-        return paths;
+        return Directory.GetFiles(directoryPath, "*.al", SearchOption.AllDirectories)
+            .ToList();
     }
 }

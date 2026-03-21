@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AL2DBML.Application.Interfaces;
+using AL2DBML.CLI.Services;
 using AL2DBML.Core.Models;
 using Spectre.Console;
 
@@ -8,10 +9,12 @@ namespace AL2DBML.CLI.Strategies;
 class WorkspaceInputStrategy : IInputStrategy
 {
     private readonly IAlParser _alParser;
+    private readonly IParsingTracker _tracker;
 
-    public WorkspaceInputStrategy(IAlParser alParser)
+    public WorkspaceInputStrategy(IAlParser alParser, IParsingTracker tracker)
     {
         _alParser = alParser;
+        _tracker = tracker;
     }
 
     public OutputSchema Execute(string inputPath)
@@ -33,12 +36,12 @@ class WorkspaceInputStrategy : IInputStrategy
             var projectPath = Path.Combine(Path.GetDirectoryName(inputPath) ?? string.Empty, path.GetString() ?? string.Empty);
             if (Directory.Exists(projectPath))
             {
-                var folderStrategy = new FolderInputStrategy(_alParser);
+                var folderStrategy = new FolderInputStrategy(_alParser, _tracker);
                 folderStrategy.Execute(projectPath);
             }
             else
             {
-                AnsiConsole.MarkupLine($"[orange]Warning:[/] Project path '{projectPath}' does not exist. Skipping this entry.");
+                AnsiConsole.MarkupLine($"[orange]Warning:[/] Project path '{Markup.Escape(projectPath)}' does not exist. Skipping this entry.");
             }
         }
         return _alParser.GetOutputSchema();

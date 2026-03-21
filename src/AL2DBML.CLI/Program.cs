@@ -1,4 +1,5 @@
 ﻿using AL2DBML.CLI.Commands;
+using AL2DBML.CLI.Services;
 using AL2DBML.DI;
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
@@ -9,7 +10,8 @@ using Spectre.Console.Cli;
 var services = new ServiceCollection();
 services
     .AddAL2Dbml()
-    .AddScoped<GenerateCommand>();
+    .AddScoped<GenerateCommand>()
+    .AddScoped<IParsingTracker, ParsingTracker>();
 
 var registrar = new TypeRegistrar(services);
 
@@ -26,11 +28,11 @@ public sealed class TypeRegistrar(IServiceCollection services) : ITypeRegistrar
 {
     public ITypeResolver Build() => new TypeResolver(services.BuildServiceProvider());
 
-    public void Register(Type service, Type implementation) => services.AddSingleton(service, implementation);
+    public void Register(Type service, Type implementation) => services.AddScoped(service, implementation);
 
     public void RegisterInstance(Type service, object implementation) => services.AddSingleton(service, implementation);
 
-    public void RegisterLazy(Type service, Func<object> factory) => services.AddSingleton(service, _ => factory());
+    public void RegisterLazy(Type service, Func<object> factory) => services.AddScoped(service, _ => factory());
 }
 
 public sealed class TypeResolver(IServiceProvider provider) : ITypeResolver
