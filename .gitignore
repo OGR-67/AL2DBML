@@ -483,5 +483,7 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-# Generated schema files
+# Generated files
 *.dbml
+.al2dbml/
+.al2dbml/config.local.json
