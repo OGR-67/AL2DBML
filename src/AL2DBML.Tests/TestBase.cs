@@ -21,7 +21,7 @@ public abstract class TestBase
 
     protected void ResetParser()
     {
-        _parser = Services.GetRequiredService<IAlParser>();
+        _parser.ClearOutputSchema();
     }
 
     protected static string LoadFixture(string path)
