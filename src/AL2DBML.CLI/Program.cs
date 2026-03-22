@@ -23,6 +23,7 @@ app.Configure(config =>
 {
     config.AddCommand<GenerateCommand>("generate");
     config.AddCommand<InitCommand>("init");
+    config.AddCommand<RemoveHookCommand>("remove-hook");
 });
 
 return await app.RunAsync(args);
