@@ -12,6 +12,7 @@ services
     .AddAL2Dbml()
     .AddScoped<GenerateCommand>()
     .AddScoped<InitCommand>()
+    .AddScoped<RemoveHookCommand>()
     .AddScoped<IParsingTracker, ParsingTracker>()
     .AddScoped<IConfigService, ConfigService>();
 
@@ -23,6 +24,7 @@ app.Configure(config =>
 {
     config.AddCommand<GenerateCommand>("generate");
     config.AddCommand<InitCommand>("init");
+    config.AddCommand<RemoveHookCommand>("remove-hook");
 });
 
 return await app.RunAsync(args);
