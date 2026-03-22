@@ -1,16 +1,21 @@
 # AL2DBML
 
+![Build](https://github.com/OGR-67/AL2DBML/actions/workflows/release.yml/badge.svg)
+![Version](https://img.shields.io/github/v/release/OGR-67/AL2DBML)
+![License](https://img.shields.io/github/license/OGR-67/AL2DBML)
+![.NET](https://img.shields.io/badge/.NET-10.0-purple)
+
 Generates a DBML database schema from a Business Central AL project by parsing table and field definitions.
 
 ## Prerequisites
 
 No runtime required — AL2DBML is distributed as a self-contained binary.
 
-| Platform | Supported |
-|---|---|
-| Windows (x64) | ✓ |
-| macOS (Apple Silicon) | ✓ |
-| Linux (x64) | ✓ |
+| Platform              | Supported |
+| --------------------- | --------- |
+| Windows (x64)         | ✓         |
+| macOS (Apple Silicon) | ✓         |
+| Linux (x64)           | ✓         |
 
 ## Installation
 
@@ -66,11 +71,11 @@ Parses AL files and generates a `.dbml` schema file.
 al2dbml generate [-i <input>] [-o <output>] [-n <name>]
 ```
 
-| Option | Description | Default |
-|---|---|---|
-| `-i`, `--input` | Path to an AL project folder, `.al` file, or `.code-workspace` file | Value from `config.local.json`, then `.` |
-| `-o`, `--output` | Output directory | Value from `config.json`, then `.` |
-| `-n`, `--name` | Output file name (without extension) | Value from `config.json`, then `schema` |
+| Option           | Description                                                         | Default                                  |
+| ---------------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| `-i`, `--input`  | Path to an AL project folder, `.al` file, or `.code-workspace` file | Value from `config.local.json`, then `.` |
+| `-o`, `--output` | Output directory                                                    | Value from `config.json`, then `.`       |
+| `-n`, `--name`   | Output file name (without extension)                                | Value from `config.json`, then `schema`  |
 
 ### `init`
 
@@ -86,12 +91,13 @@ Re-running `init` on an existing config pre-fills the prompts with current value
 
 `init` creates two files in `.al2dbml/`:
 
-| File | Versioned | Content |
-|---|---|---|
-| `config.json` | Yes | Output path and file name — shared across contributors |
+| File                | Versioned       | Content                                                  |
+| ------------------- | --------------- | -------------------------------------------------------- |
+| `config.json`       | Yes             | Output path and file name — shared across contributors   |
 | `config.local.json` | No (gitignored) | Input path — contributor-specific, useful for workspaces |
 
 `config.json` example:
+
 ```json
 {
   "Output": {
@@ -102,6 +108,7 @@ Re-running `init` on an existing config pre-fills the prompts with current value
 ```
 
 `config.local.json` example:
+
 ```json
 {
   "Input": {
