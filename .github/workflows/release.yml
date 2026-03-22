@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            artifact: al2dbml.exe
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: al2dbml
+          - os: macos-latest
+            rid: osx-arm64
+            artifact: al2dbml
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        run: dotnet publish src/AL2DBML.CLI/AL2DBML.CLI.csproj -c Release -r ${{ matrix.rid }} --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish/${{ matrix.rid }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}/${{ matrix.artifact }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --latest
+        id: cliff
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Rename artifacts
+        run: |
+          mv win-x64/al2dbml.exe al2dbml-win-x64.exe
+          mv linux-x64/al2dbml al2dbml-linux-x64
+          mv osx-arm64/al2dbml al2dbml-osx-arm64
+          chmod +x al2dbml-linux-x64 al2dbml-osx-arm64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.cliff.outputs.content }}
+          files: |
+            al2dbml-win-x64.exe
+            al2dbml-linux-x64
+            al2dbml-osx-arm64
