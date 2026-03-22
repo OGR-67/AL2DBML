@@ -12,12 +12,6 @@ public class RemoveHookCommand : Command<RemoveHookSettings>
 {
     protected override int Execute(CommandContext context, RemoveHookSettings settings, CancellationToken cancellationToken)
     {
-        if (!File.Exists(".git/hooks/pre-commit"))
-        {
-            AnsiConsole.MarkupLine("[yellow]Warning:[/] No pre-commit hook found.");
-            return 0;
-        }
-
         var removed = HookService.Remove();
         if (!removed)
             AnsiConsole.MarkupLine("[yellow]Warning:[/] No AL2DBML section found in pre-commit hook.");

@@ -21,7 +21,7 @@ internal static class HookService
             var startIdx = content.IndexOf(HookMarkers.Start, StringComparison.Ordinal);
             var endIdx = content.IndexOf(HookMarkers.End, StringComparison.Ordinal);
 
-            if (startIdx >= 0 && endIdx >= 0)
+            if (startIdx >= 0 && endIdx > startIdx)
                 content = content[..startIdx] + hookSection + content[(endIdx + HookMarkers.End.Length)..];
             else
                 content = content.TrimEnd() + $"\n\n{hookSection}\n";
@@ -47,7 +47,7 @@ internal static class HookService
         var content = File.ReadAllText(HookPath);
         var startIdx = content.IndexOf(HookMarkers.Start, StringComparison.Ordinal);
         var endIdx = content.IndexOf(HookMarkers.End, StringComparison.Ordinal);
-        if (startIdx < 0 || endIdx < 0) return false;
+        if (startIdx < 0 || endIdx <= startIdx) return false;
 
         var before = content[..startIdx].TrimEnd();
         var after = content[(endIdx + HookMarkers.End.Length)..].TrimStart('\r', '\n');

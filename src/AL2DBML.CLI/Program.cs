@@ -12,6 +12,7 @@ services
     .AddAL2Dbml()
     .AddScoped<GenerateCommand>()
     .AddScoped<InitCommand>()
+    .AddScoped<RemoveHookCommand>()
     .AddScoped<IParsingTracker, ParsingTracker>()
     .AddScoped<IConfigService, ConfigService>();
 
