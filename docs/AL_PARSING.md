@@ -90,6 +90,44 @@ enumextension 50101 "My Status Ext" extends "My Status" { value(2; Pending) }
 
 Values are merged into the base enum. Duplicate values are ignored.
 
+## TableRelation
+
+`TableRelation` defines a foreign key lookup to another table. It is parsed from the field body and stored in `DBMLColumn.References` as a two-element array `[tableName, fieldName]`.
+
+### Supported syntaxes
+
+| AL syntax | Result |
+|---|---|
+| `TableRelation = Vendor;` | `["Vendor", "UnknownField"]` |
+| `TableRelation = Vendor."No.";` | `["Vendor", "No."]` |
+| `TableRelation = Vendor.Code;` | `["Vendor", "Code"]` |
+| `TableRelation = "Salesperson/Purchaser";` | `["Salesperson/Purchaser", "UnknownField"]` |
+| `TableRelation = "Salesperson/Purchaser"."Code";` | `["Salesperson/Purchaser", "Code"]` |
+| `TableRelation = "Salesperson/Purchaser".Code;` | `["Salesperson/Purchaser", "Code"]` |
+
+When no field is specified, the sentinel value `"UnknownField"` is used. This is resolved at post-processing time (see ARCHITECTURE.md — Schema post-processing).
+
+### WHERE filters
+
+`where` clauses are silently ignored — the table (and field, if specified) are still extracted:
+
+```al
+TableRelation = Vendor where ("Blocked" = const(false));        // → ["Vendor", "UnknownField"]
+TableRelation = Vendor."No." where ("No." = field("No."));      // → ["Vendor", "No."]
+```
+
+### Unsupported syntaxes
+
+Conditional `TableRelation` using `if/else` is not parsed — the target table depends on a runtime field value and is therefore ambiguous. The relation is silently ignored.
+
+```al
+TableRelation = if (Type = const(Customer)) Customer else Vendor;  // → no reference generated
+```
+
+### PK assumption
+
+In AL, `TableRelation` almost always points to the primary key of the target table. When a referenced field is explicit (e.g. `.Code`), it is marked as `IsPrimaryKey = true` in the generated stub or partial table. This is a heuristic — in the rare case where the referenced field is not actually the PK, the generated schema will be incorrect for that relation.
+
 ## FlowFields
 
 AL FlowFields are calculated fields with no physical storage:
