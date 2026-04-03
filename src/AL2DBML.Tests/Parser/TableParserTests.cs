@@ -226,4 +226,110 @@ public class TableParserTests : TestBase
         Assert.Equal(10, baseTable.Fields.Count); // 8 original + 2 from extension
         Assert.Contains(baseTable.Fields, f => f.Name == "Approval Status" && f.Type == "Approval Status");
     }
+
+    [Fact]
+    public void Parse_Table_WithTableRelation_UnquotedTable_ReturnsTableName()
+    {
+        ResetParser();
+        var al = LoadFixture("Tables/PurchaseHeader.al");
+
+        var result = _parser.ParseTable(al);
+
+        var field = result.Fields.FirstOrDefault(f => f.Name == "Buy-from Vendor No.");
+        Assert.NotNull(field);
+        Assert.NotNull(field.References);
+        Assert.Equal("Vendor", field.References[0]);
+    }
+
+    [Fact]
+    public void Parse_Table_WithTableRelation_ExplicitField_ReturnsBothTableAndFieldName()
+    {
+        ResetParser();
+        var al = LoadFixture("Tables/PurchaseHeader.al");
+
+        var result = _parser.ParseTable(al);
+
+        var field = result.Fields.FirstOrDefault(f => f.Name == "Pay-to Vendor No.");
+        Assert.NotNull(field);
+        Assert.NotNull(field.References);
+        Assert.Equal("Vendor", field.References[0]);
+        Assert.Equal("No.", field.References[1]);
+    }
+
+    [Fact]
+    public void Parse_Table_WithTableRelation_QuotedTableAndUnquotedField_ReturnsBothTableAndFieldName()
+    {
+        ResetParser();
+        var al = LoadFixture("Tables/PurchaseHeader.al");
+
+        var result = _parser.ParseTable(al);
+
+        var field = result.Fields.FirstOrDefault(f => f.Name == "Salesperson/Purchaser Code");
+        Assert.NotNull(field);
+        Assert.NotNull(field.References);
+        Assert.Equal("Salesperson/Purchaser", field.References[0]);
+        Assert.Equal("Code", field.References[1]);
+    }
+
+    [Fact]
+    public void Parse_Table_WithTableRelation_QuotedTableAndField_ReturnsBothTableAndFieldName()
+    {
+        ResetParser();
+        var al = LoadFixture("Tables/Customer.al");
+
+        var result = _parser.ParseTable(al);
+
+        var field = result.Fields.FirstOrDefault(f => f.Name == "Currency Code");
+        Assert.NotNull(field);
+        Assert.NotNull(field.References);
+        Assert.Equal("Currency", field.References[0]);
+        Assert.Equal("Code", field.References[1]);
+    }
+
+    [Fact]
+    public void Parse_Field_WithTableRelationAndWhereClause_ExtractsTableIgnoresFilter()
+    {
+        ResetParser();
+        var al = """
+            field(1; "Vendor No."; Code[20])
+            {
+                TableRelation = Vendor where ("Blocked" = const(false));
+            }
+            """;
+
+        var result = _parser.ParseField(al);
+
+        Assert.NotNull(result.References);
+        Assert.Equal("Vendor", result.References[0]);
+        Assert.Equal("UnknownField", result.References[1]);
+    }
+
+    [Fact]
+    public void Parse_Field_WithConditionalTableRelation_ReturnsNullReferences()
+    {
+        ResetParser();
+        var al = """
+            field(1; "Account No."; Code[20])
+            {
+                TableRelation = if (Type = const(Customer)) Customer else if (Type = const(Vendor)) Vendor;
+            }
+            """;
+
+        var result = _parser.ParseField(al);
+
+        Assert.Null(result.References);
+    }
+
+    [Fact]
+    public void Parse_Table_WithoutTableRelation_ReturnsNullReferences()
+    {
+        ResetParser();
+        var al = LoadFixture("Tables/PurchaseHeader.al");
+
+        var result = _parser.ParseTable(al);
+
+        var field = result.Fields.FirstOrDefault(f => f.Name == "Amount");
+        Assert.NotNull(field);
+        Assert.Null(field.References);
+    }
 }

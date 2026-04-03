@@ -13,6 +13,9 @@ public class SchemaPostProcessor : ISchemaPostProcessor
         var copy = OutputSchemaHelper.DeepCopy(schema);
 
         InferSinglePkWhenOnlyUnknownPlusOneColumn(copy);
+        RemoveEmptyTables(copy);
+        CreateStubsForMissingReferencedTables(copy);
+        AddMissingReferencedFieldsToExistingTables(copy);
 
         var singlePkByTable = copy.Tables
             .Select(t => new { Table = t, Pks = t.Fields.Where(f => f.IsPrimaryKey).ToList() })
@@ -62,6 +65,60 @@ public class SchemaPostProcessor : ISchemaPostProcessor
     private static void RemoveUnknownFieldColumns(OutputSchema schema, Dictionary<string, DBMLColumn> singlePkByTable)
     {
         foreach (var table in schema.Tables.Where(t => singlePkByTable.ContainsKey(t.Name)))
-            table.Fields.RemoveAll(f => string.Equals(f.Name, Unknown, StringComparison.OrdinalIgnoreCase));
+            table.Fields.RemoveAll(f => string.Equals(f.Name, Unknown, StringComparison.OrdinalIgnoreCase) && !f.IsPrimaryKey);
+    }
+
+    private static void CreateStubsForMissingReferencedTables(OutputSchema schema)
+    {
+        var existingTableNames = schema.Tables
+            .Select(t => t.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var referencingFieldsByTable = schema.Tables
+            .SelectMany(t => t.Fields)
+            .Where(f => f.References is { Length: 2 } refs && !string.IsNullOrEmpty(refs[0]) && !existingTableNames.Contains(refs[0]))
+            .GroupBy(f => f.References![0], StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in referencingFieldsByTable)
+        {
+            var explicitFields = group
+                .Where(f => !string.IsNullOrEmpty(f.References![1]) && !string.Equals(f.References![1], Unknown, StringComparison.OrdinalIgnoreCase))
+                .DistinctBy(f => f.References![1], StringComparer.OrdinalIgnoreCase)
+                .Select(f => new DBMLColumn { Name = f.References![1], Type = f.Type, IsPrimaryKey = true })
+                .ToList();
+
+            var stubFields = explicitFields.Count > 0
+                ? explicitFields
+                : [new DBMLColumn { Name = Unknown, Type = group.First().Type, IsPrimaryKey = true }];
+
+            schema.Tables.Add(new DBMLTable { Name = group.Key, Fields = stubFields });
+        }
+    }
+
+    private static void AddMissingReferencedFieldsToExistingTables(OutputSchema schema)
+    {
+        var tablesByName = schema.Tables.ToDictionary(t => t.Name, StringComparer.OrdinalIgnoreCase);
+
+        var explicitRefs = schema.Tables
+            .SelectMany(t => t.Fields)
+            .Where(f => f.References is { Length: 2 } refs
+                        && !string.IsNullOrEmpty(refs[0])
+                        && !string.IsNullOrEmpty(refs[1])
+                        && !string.Equals(refs[1], Unknown, StringComparison.OrdinalIgnoreCase)
+                        && tablesByName.ContainsKey(refs[0]));
+
+        foreach (var field in explicitRefs)
+        {
+            var targetTable = tablesByName[field.References![0]];
+            var referencedFieldName = field.References![1];
+
+            if (!targetTable.Fields.Any(f => string.Equals(f.Name, referencedFieldName, StringComparison.OrdinalIgnoreCase)))
+                targetTable.Fields.Insert(0, new DBMLColumn { Name = referencedFieldName, Type = field.Type, IsPrimaryKey = true });
+        }
+    }
+
+    private static void RemoveEmptyTables(OutputSchema schema)
+    {
+        schema.Tables.RemoveAll(t => t.Fields.Count == 0);
     }
 }

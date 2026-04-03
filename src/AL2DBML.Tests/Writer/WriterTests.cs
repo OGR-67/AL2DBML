@@ -426,6 +426,149 @@ public class WriterTests : TestBase
         Assert.DoesNotContain("UnknownField", result);
     }
 
+    // --- RemoveEmptyTables ---
+
+    [Fact]
+    public async Task WriteDBMLAsync_EmptyTable_IsRemovedFromOutput()
+    {
+        var schema = new OutputSchema
+        {
+            Tables =
+            [
+                new DBMLTable { Name = "Item", Fields = [] },
+                new DBMLTable { Name = "Customer", Fields = [new DBMLColumn { Name = "No.", Type = "Code[20]", IsPrimaryKey = true }] }
+            ]
+        };
+
+        var result = await _writer.WriteDBMLAsync(schema);
+
+        Assert.DoesNotContain("table Item", result);
+        Assert.Contains("table Customer", result);
+    }
+
+    // --- CreateStubsForMissingReferencedTables ---
+
+    [Fact]
+    public async Task WriteDBMLAsync_MissingReferencedTable_CreatesStubWithExplicitField()
+    {
+        var schema = new OutputSchema
+        {
+            Tables =
+            [
+                new DBMLTable
+                {
+                    Name = "SalesLine",
+                    Fields = [new DBMLColumn { Name = "Currency Code", Type = "Code[10]", References = ["Currency", "Code"] }]
+                }
+            ]
+        };
+
+        var result = await _writer.WriteDBMLAsync(schema);
+
+        Assert.Contains("table Currency {", result);
+        Assert.Contains("Code \"Code[10]\" [pk]", result);
+    }
+
+    [Fact]
+    public async Task WriteDBMLAsync_MissingReferencedTable_UnknownRefResolvedAfterStubCreation()
+    {
+        var schema = new OutputSchema
+        {
+            Tables =
+            [
+                new DBMLTable
+                {
+                    Name = "OC Translation",
+                    Fields =
+                    [
+                        new DBMLColumn { Name = "Windows Language ID", Type = "Integer", References = ["Language", "Windows Language ID"] },
+                        new DBMLColumn { Name = "Language Code", Type = "Code[20]", References = ["Language", "UnknownField"] }
+                    ]
+                }
+            ]
+        };
+
+        var result = await _writer.WriteDBMLAsync(schema);
+
+        Assert.Contains("table Language {", result);
+        Assert.Contains("\"Windows Language ID\" Integer [pk]", result);
+        Assert.Contains("ref: > Language.\"Windows Language ID\"", result);
+        Assert.DoesNotContain("UnknownField", result);
+    }
+
+    [Fact]
+    public async Task WriteDBMLAsync_PartialTableMissingReferencedField_FieldAddedAsPk()
+    {
+        // Table exists (from tableextension) but lacks the base PK referenced by another table
+        var schema = new OutputSchema
+        {
+            Tables =
+            [
+                new DBMLTable
+                {
+                    Name = "Salesperson/Purchaser",
+                    Fields = [new DBMLColumn { Name = "Extension Field", Type = "Text[50]" }]
+                },
+                new DBMLTable
+                {
+                    Name = "Purchase Header",
+                    Fields = [new DBMLColumn { Name = "Salesperson Code", Type = "Code[10]", References = ["Salesperson/Purchaser", "Code"] }]
+                }
+            ]
+        };
+
+        var result = await _writer.WriteDBMLAsync(schema);
+
+        Assert.Contains("table \"Salesperson/Purchaser\"", result);
+        Assert.Contains("Code \"Code[10]\" [pk]", result);
+        Assert.Contains("ref: > \"Salesperson/Purchaser\".Code", result);
+    }
+
+    [Fact]
+    public async Task WriteDBMLAsync_EmptyTableWithIncomingRef_IsReplacedByStub()
+    {
+        // Item exists as empty table (side effect of a tableextension) but is referenced via TableRelation
+        var schema = new OutputSchema
+        {
+            Tables =
+            [
+                new DBMLTable { Name = "Item", Fields = [] },
+                new DBMLTable
+                {
+                    Name = "SalesLine",
+                    Fields = [new DBMLColumn { Name = "Item No.", Type = "Code[20]", References = ["Item", "UnknownField"] }]
+                }
+            ]
+        };
+
+        var result = await _writer.WriteDBMLAsync(schema);
+
+        Assert.Contains("table Item {", result);
+        Assert.Contains("UnknownField \"Code[20]\" [pk]", result);
+    }
+
+    [Fact]
+    public async Task WriteDBMLAsync_MissingReferencedTable_OnlyUnknownRef_CreatesStubWithUnknownFieldAsPk()
+    {
+        var schema = new OutputSchema
+        {
+            Tables =
+            [
+                new DBMLTable
+                {
+                    Name = "SalesLine",
+                    Fields = [new DBMLColumn { Name = "Item No.", Type = "Code[20]", References = ["Item", "UnknownField"] }]
+                }
+            ]
+        };
+
+        var result = await _writer.WriteDBMLAsync(schema);
+
+        Assert.Contains("table Item {", result);
+        Assert.Contains("UnknownField \"Code[20]\" [pk]", result);
+        Assert.Contains("ref: > Item.UnknownField", result);
+    }
+
     [Fact]
     public async Task WriteDBMLAsync_DoesNotInferPk_WhenMultipleRealFields()
     {

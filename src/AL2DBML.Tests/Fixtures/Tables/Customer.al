@@ -88,6 +88,7 @@ table 18 "Customer"
         {
             Caption = 'Currency Code';
             ToolTip = 'Specifies the currency for customer transactions';
+            TableRelation = Currency."Code";
         }
         field(17; "Blocked"; Enum "Customer Blocked")
         {
