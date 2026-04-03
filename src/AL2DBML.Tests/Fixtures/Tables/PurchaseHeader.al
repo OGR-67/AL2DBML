@@ -16,10 +16,12 @@ table 38 "Purchase Header"
         field(3; "Buy-from Vendor No."; Code[20])
         {
             Caption = 'Buy-from Vendor No.';
+            TableRelation = Vendor;
         }
         field(4; "Pay-to Vendor No."; Code[20])
         {
             Caption = 'Pay-to Vendor No.';
+            TableRelation = Vendor."No.";
         }
         field(5; "Amount"; Decimal)
         {
@@ -32,6 +34,7 @@ table 38 "Purchase Header"
         field(7; "Salesperson/Purchaser Code"; Code[10])
         {
             Caption = 'Salesperson/Purchaser Code';
+            TableRelation = "Salesperson/Purchaser".Code;
         }
         field(8; "Outstanding Amount (LCY)"; Decimal)
         {

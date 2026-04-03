@@ -111,31 +111,19 @@ public class AlParser : IAlParser
 
         foreach (Match fieldMatch in fieldMatches)
         {
-            var columnName = AlSyntaxHelper.CleanName(fieldMatch.Groups[2].Value);
-            var columnType = AlSyntaxHelper.CleanName(fieldMatch.Groups[4].Value);
-            var fieldBody = fieldMatch.Groups[6].Value;
+            var column = ParseField(fieldMatch.Value);
+            column.IsPrimaryKey = primaryKeys.Contains(column.Name);
 
-            var isFlowField = fieldBody.Contains("FieldClass") && fieldBody.Contains("FlowField");
-            var calcFormula = ExtractCalcFormula(fieldBody);
-
-            var existingColumn = table.Fields.FirstOrDefault(c => c.Name == columnName);
+            var existingColumn = table.Fields.FirstOrDefault(c => c.Name == column.Name);
             if (existingColumn == null)
-            {
-                table.Fields.Add(new DBMLColumn
-                {
-                    Name = columnName,
-                    Type = columnType,
-                    IsPrimaryKey = primaryKeys.Contains(columnName),
-                    IsFlowfield = isFlowField,
-                    CalcFormula = calcFormula
-                });
-            }
+                table.Fields.Add(column);
             else
             {
-                existingColumn.Type = columnType;
-                existingColumn.IsPrimaryKey = primaryKeys.Contains(columnName);
-                existingColumn.IsFlowfield = isFlowField;
-                existingColumn.CalcFormula = calcFormula;
+                existingColumn.Type = column.Type;
+                existingColumn.IsPrimaryKey = column.IsPrimaryKey;
+                existingColumn.IsFlowfield = column.IsFlowfield;
+                existingColumn.CalcFormula = column.CalcFormula;
+                existingColumn.References = column.References;
             }
         }
     }
@@ -144,6 +132,31 @@ public class AlParser : IAlParser
     {
         var match = Regex.Match(fieldBody, @"CalcFormula\s*=\s*([^;]+)");
         return match.Success ? match.Groups[1].Value.Trim() : string.Empty;
+    }
+
+    private string[]? ExtractTableRelation(string fieldBody)
+    {
+        // Supported:
+        //   TableRelation = Vendor;
+        //   TableRelation = Vendor."No.";
+        //   TableRelation = Vendor.Code;
+        //   TableRelation = "Salesperson/Purchaser";
+        //   TableRelation = "Salesperson/Purchaser"."Code";
+        //   TableRelation = "Salesperson/Purchaser".Code;
+        //   TableRelation = Vendor where (...);        → table extracted, where clause ignored
+        // Not supported (returns null):
+        //   TableRelation = if (Type = ...) Table1 else Table2;  → conditional, target is ambiguous
+        var match = Regex.Match(fieldBody, @"TableRelation\s*=\s*(?:""([^""]+)""|(\w+))(?:\.(?:""([^""]+)""|(\w+)))?");
+        if (!match.Success) return null;
+
+        var tableName = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
+        if (string.Equals(tableName, "if", StringComparison.OrdinalIgnoreCase)) return null;
+
+        var fieldName = match.Groups[3].Success ? match.Groups[3].Value
+                      : match.Groups[4].Success ? match.Groups[4].Value
+                      : "UnknownField";
+
+        return [tableName, fieldName];
     }
 
     private DBMLTable GetOrCreateTable(string name, out bool isNew)
@@ -166,13 +179,15 @@ public class AlParser : IAlParser
 
         var isFlowField = fieldBody.Contains("FieldClass") && fieldBody.Contains("FlowField");
         var calcFormula = ExtractCalcFormula(fieldBody);
+        var references = ExtractTableRelation(fieldBody);
 
         return new DBMLColumn
         {
             Name = columnName,
             Type = columnType,
             IsFlowfield = isFlowField,
-            CalcFormula = calcFormula
+            CalcFormula = calcFormula,
+            References = references
         };
     }
 
